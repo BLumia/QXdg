@@ -1,0 +1,5 @@
+# project generated files
+*.user
+
+# misc
+.directory
