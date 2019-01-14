@@ -37,52 +37,71 @@ private Q_SLOTS:
     void testCase_kf5config_path();
 };
 
-QXdgStandardPathTest::QXdgStandardPathTest()
-{
-}
-
-void QXdgStandardPathTest::testCase_xdguserdir()
-{
+QString spawnBlockingCommand(const QString &program, const QStringList &arguments,
+                             QIODevice::OpenMode mode = QIODevice::ReadWrite) {
     QProcess cmd;
-    cmd.start("xdg-user-dir", {"TEMPLATES"});
+    cmd.start(program, arguments, mode);
     cmd.waitForFinished();
     QString result = cmd.readAllStandardOutput().trimmed();
-    QCOMPARE(QXdgStandardPath::userDirLocation(QXdgStandardPath::TemplatesLocation), result);
+    return result;
+}
 
-    qDebug() << QXdgStandardPath::standardLocations(QXdgStandardPath::Kf5TemplatesLocation);
+QXdgStandardPathTest::QXdgStandardPathTest()
+{
+    qDebug() << QXdgStandardPath::standardLocations(QXdgStandardPath::Kf5ServicesLocation);
     qDebug() << QXdgStandardPath::standardLocations(QXdgStandardPath::XdgDataDirsLocation);
     qDebug() << QXdgStandardPath::standardLocations(QXdgStandardPath::XdgDataHomeLocation);
 }
 
+void QXdgStandardPathTest::testCase_xdguserdir()
+{
+    if (QStandardPaths::findExecutable("xdg-user-dir").isEmpty()) {
+        QSKIP("xdg-user-dir not installed, related test skipped.");
+    }
+
+    QString result1 = spawnBlockingCommand("xdg-user-dir", {"DESKTOP"});
+    QCOMPARE(QXdgStandardPath::userDirLocation(QXdgStandardPath::DesktopLocation), result1);
+
+    QString result2 = spawnBlockingCommand("xdg-user-dir", {"VIDEOS"});
+    QCOMPARE(QXdgStandardPath::userDirLocation(QXdgStandardPath::VideosLocation), result2);
+
+    QString result3 = spawnBlockingCommand("xdg-user-dir", {"TEMPLATES"});
+    QCOMPARE(QXdgStandardPath::userDirLocation(QXdgStandardPath::TemplatesLocation), result3);
+}
+
 void QXdgStandardPathTest::testCase_kf5config_path()
 {
-    bool skipTest = false;
 #ifdef SKIP_KF5_RELATED_TEST
-    skipTest = true;
+    QSKIP("SKIP_KF5_RELATED_TEST defined, related test skipped.");
 #endif // SKIP_KF5_RELATED_TEST
+
     if (QStandardPaths::findExecutable("kf5-config").isEmpty()) {
-        qDebug() << "kf5-config not installed, will skip related tests";
-        skipTest = true;
+        QSKIP("kf5-config not installed, related test skipped.");
     }
 
-    if (skipTest) {
-        QSKIP("'kf5-config --path <type>' related test skipped.");
-    }
-
-    QProcess cmd;
-    cmd.start("kf5-config", {"--path", "templates"});
-    cmd.waitForFinished();
-    QString expectedResults = cmd.readAllStandardOutput().trimmed();
-    QStringList results = QXdgStandardPath::standardLocations(QXdgStandardPath::Kf5TemplatesLocation);
-    QStringList processedResults;
     // "kf5-config"'s result are come with trailing slash, so we need to process the result.
-    for (QString oneResult : results) {
-        if (!oneResult.endsWith('/')) {
-            oneResult.append('/');
+    auto processStringList = [](const QStringList &list) {
+        QStringList processedResults;
+        for (QString oneString : list) {
+            if (!oneString.endsWith('/')) {
+                oneString.append('/');
+            }
+            processedResults << oneString;
         }
-        processedResults << oneResult;
-    }
-    QCOMPARE(processedResults.join(':'), expectedResults);
+        return processedResults;
+    };
+
+    QString expectedResults1 = spawnBlockingCommand("kf5-config", {"--path", "services"});
+    QStringList results1 = processStringList(QXdgStandardPath::standardLocations(QXdgStandardPath::Kf5ServicesLocation));
+    QCOMPARE(results1.join(':'), expectedResults1);
+
+    QString expectedResults2 = spawnBlockingCommand("kf5-config", {"--path", "sound"});
+    QStringList results2 = processStringList(QXdgStandardPath::standardLocations(QXdgStandardPath::Kf5SoundLocation));
+    QCOMPARE(results2.join(':'), expectedResults2);
+
+    QString expectedResults3 = spawnBlockingCommand("kf5-config", {"--path", "templates"});
+    QStringList results3 = processStringList(QXdgStandardPath::standardLocations(QXdgStandardPath::Kf5TemplatesLocation));
+    QCOMPARE(results3.join(':'), expectedResults3);
 }
 
 QTEST_APPLESS_MAIN(QXdgStandardPathTest)

@@ -49,6 +49,8 @@ public:
         XdgDataDirsLocation,
         XdgDataHomeLocation,
         // KDE Framework paths
+        Kf5ServicesLocation,
+        Kf5SoundLocation,
         Kf5TemplatesLocation
     };
     Q_ENUM(StandardLocation)

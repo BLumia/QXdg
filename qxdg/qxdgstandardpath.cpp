@@ -93,15 +93,21 @@ static QString xdgDataHomeDir()
 }
 
 /*
- * Notice that we can't promise you can get 100% matched result with kf5-config via this function.
+ * KDE's resource dirs depends on "Install Dir" a lot which is a compile time CMake variable.
+ * So that we can't promise you can get 100% matched result with kf5-config via this function.
  * If you really need a 100% accuracy result of `kf5-config --path <type>`, use KDE's code directly
  * is recommended, or you can read kstandarddirs.cpp from KDE's codebase.
+ *
+ * ref: https://api.kde.org/ecm/kde-module/KDEInstallDirs.html
+ *      https://lists.ubuntu.com/archives/kubuntu-devel/2014-January/007748.html (outdated, not recommend)
 */
 QStringList kf5ResourceDirs(QString type) {
     QDir testdir;
     QStringList result;
     QStringList dirs = xdgDataDirs();
     dirs.prepend(xdgDataHomeDir());
+
+    if (type.isEmpty()) return {};
 
     // KDE did this, I don't think this is good. Maybe there are something wrong in KDE's implemetion.
     // Reason is: you'll get a "/home/wzc/.local/share/flatpak/exports/share" if you use flatpak which
@@ -250,6 +256,10 @@ QStringList QXdgStandardPath::standardLocations(QXdgStandardPath::StandardLocati
     case VideosLocation:
         return {userDirLocation(type)};
     // KDE Framework paths
+    case Kf5ServicesLocation:
+        return kf5ResourceDirs(QLatin1String("kservices5"));
+    case Kf5SoundLocation:
+        return kf5ResourceDirs(QLatin1String("sounds"));
     case Kf5TemplatesLocation:
         return kf5ResourceDirs(QLatin1String("templates"));
     default:
