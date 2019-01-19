@@ -29,15 +29,18 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 
 SOURCES += \
-        tst_qxdgstandardpathtest.cpp
+    tst_qxdgstandardpathtest.cpp \
+    tst_qxdgdesktopentrytest.cpp
 
 # from QXdg
 
 INCLUDEPATH += $$PWD/../qxdg
 
 SOURCES += \
-        $$PWD/../qxdg/qxdgstandardpath.cpp
+        $$PWD/../qxdg/qxdgstandardpath.cpp \
+        $$PWD/../qxdg/qxdgdesktopentry.cpp
 
 HEADERS += \
         $$PWD/../qxdg/qxdgstandardpath.h \
+        $$PWD/../qxdg/qxdgdesktopentry.h \
         $$PWD/../qxdg/qxdg_global.h

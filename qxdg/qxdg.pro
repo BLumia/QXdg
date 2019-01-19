@@ -23,11 +23,13 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-        qxdgstandardpath.cpp
+        qxdgstandardpath.cpp \
+    qxdgdesktopentry.cpp
 
 HEADERS += \
         qxdgstandardpath.h \
-        qxdg_global.h 
+        qxdg_global.h \ 
+    qxdgdesktopentry.h
 
 unix {
     target.path = /usr/lib
