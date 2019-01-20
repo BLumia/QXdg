@@ -28,8 +28,6 @@
 #include <QTemporaryFile>
 #include <QDebug>
 
-typedef QPair<QXdgDesktopEntry::ValueType, QVariant> SectionValue;
-
 enum { Space = 0x1, Special = 0x2 };
 
 static const char charTraits[256] = {
@@ -123,11 +121,75 @@ break_out_of_outer_loop:
     return lineLen > 0;
 }
 
+QString &doEscape(QString& str, const QHash<QChar,QChar> &repl)
+{
+    // First we replace slash.
+    str.replace(QLatin1Char('\\'), QLatin1String("\\\\"));
+
+    QHashIterator<QChar,QChar> i(repl);
+    while (i.hasNext()) {
+        i.next();
+        if (i.key() != QLatin1Char('\\'))
+            str.replace(i.key(), QString::fromLatin1("\\\\%1").arg(i.value()));
+    }
+
+    return str;
+}
+
+QString &doUnescape(QString& str, const QHash<QChar,QChar> &repl)
+{
+    int n = 0;
+    while (1) {
+        n=str.indexOf(QLatin1String("\\"), n);
+        if (n < 0 || n > str.length() - 2)
+            break;
+
+        if (repl.contains(str.at(n+1))) {
+            str.replace(n, 2, repl.value(str.at(n+1)));
+        }
+
+        n++;
+    }
+
+    return str;
+}
+
+class QXdgDesktopEntryValue
+{
+public:
+    explicit QXdgDesktopEntryValue() {}
+    QXdgDesktopEntryValue(QXdgDesktopEntry::ValueType type, QVariant value) : type(type), value(value) {}
+
+    bool isEmpty() const {
+        return (type != QXdgDesktopEntry::NotExisted || value.isNull());
+    }
+
+    void parse() {
+        if (type != QXdgDesktopEntry::Unparsed) return;
+        if (isEmpty()) return;
+
+        Q_ASSERT(type == QXdgDesktopEntry::Unparsed);
+
+        QString rawString = value.toString();
+//        QXdgDesktopEntry::ValueType detectedType = QXdgDesktopEntry::Unparsed;
+
+//        for (auto &ch : rawString) {
+
+//        }
+
+        // TODO
+        type = QXdgDesktopEntry::String;
+    }
+
+    QXdgDesktopEntry::ValueType type = QXdgDesktopEntry::NotExisted;
+    QVariant value;
+};
+
 class QXdgDesktopEntrySection
 {
 public:
     QString name;
-    QMap<QString, SectionValue> valuesMap;
+    QMap<QString, QXdgDesktopEntryValue> valuesMap;
     QByteArray unparsedDatas;
     int sectionPos = -1;
 
@@ -153,30 +215,27 @@ public:
                 QString key = unparsedDatas.mid(lineStart, equalsPos - lineStart).trimmed();
                 QString rawValue = unparsedDatas.mid(equalsPos + 1, lineStart + lineLen - equalsPos - 1).trimmed();
 
-                // TODO: check if key in "keyname[xx]" format, convert it to localeString type, and also include the
-                //       existing key.
-
-                valuesMap[key] = SectionValue(QXdgDesktopEntry::Unparsed, rawValue);
+                valuesMap[key] = QXdgDesktopEntryValue(QXdgDesktopEntry::Unparsed, rawValue);
             }
         }
 
         return false;
     }
 
-    SectionValue get(QString key, QVariant &defaultValue) {
+    bool contains(const QString &key) const {
+        const_cast<QXdgDesktopEntrySection*>(this)->ensureSectionDataParsed();
+        return valuesMap.contains(key);
+    }
 
-        ensureSectionDataParsed();
-
-        if (valuesMap.contains(key)) {
-            SectionValue &value = valuesMap[key];
-            if (value.first == QXdgDesktopEntry::Unparsed) {
-                QString rawString = value.second.toString();
-                value.first = QXdgDesktopEntry::guessType(rawString);
-                value.second = QXdgDesktopEntry::stringToVariant(rawString);
+    QXdgDesktopEntryValue get(const QString &key, QVariant &defaultValue) {
+        if (this->contains(key)) {
+            QXdgDesktopEntryValue &value = valuesMap[key];
+            if (value.type == QXdgDesktopEntry::Unparsed) {
+                value.parse();
             }
             return value;
         } else {
-            return SectionValue(QXdgDesktopEntry::NotExisted, defaultValue);
+            return QXdgDesktopEntryValue(QXdgDesktopEntry::NotExisted, defaultValue);
         }
     }
 };
@@ -191,6 +250,7 @@ public:
     bool initSectionsFromData(const QByteArray &data);
     void setStatus(QXdgDesktopEntry::Status newStatus) const;
 
+    bool contains(const QString &sectionName, const QString &key) const;
     bool get(const QString &sectionName, const QString &key, QVariant *value);
 
 protected:
@@ -321,17 +381,30 @@ void QXdgDesktopEntryPrivate::setStatus(QXdgDesktopEntry::Status newStatus) cons
     }
 }
 
-// return true if we found the value, and set the value to *value
-bool QXdgDesktopEntryPrivate::get(const QString &sectionName, const QString &key, QVariant *value)
+bool QXdgDesktopEntryPrivate::contains(const QString &sectionName, const QString &key) const
 {
     if (sectionName.isNull() || key.isNull()) {
         return false;
     }
 
     if (sectionsMap.contains(sectionName)) {
-        SectionValue &&result = sectionsMap[sectionName].get(key, *value);
-        if (result.first != QXdgDesktopEntry::NotExisted) {
-            *value = result.second;
+        return sectionsMap[sectionName].contains(key);
+    }
+
+    return false;
+}
+
+// return true if we found the value, and set the value to *value
+bool QXdgDesktopEntryPrivate::get(const QString &sectionName, const QString &key, QVariant *value)
+{
+    if (!this->contains(sectionName, key)) {
+        return false;
+    }
+
+    if (sectionsMap.contains(sectionName)) {
+        QXdgDesktopEntryValue &&result = sectionsMap[sectionName].get(key, *value);
+        if (result.type != QXdgDesktopEntry::NotExisted) {
+            *value = result.value;
             return true;
         }
     }
@@ -356,24 +429,185 @@ QVariant QXdgDesktopEntry::value(const QString &key, const QString &section, con
 {
     Q_D(const QXdgDesktopEntry);
     QVariant result = defaultValue;
-    if (key.isEmpty()) {
-        qWarning("QXdgDesktopEntry::value: Empty key passed");
+    if (key.isEmpty() || section.isEmpty()) {
+        qWarning("QXdgDesktopEntry::value: Empty key or section passed");
         return result;
     }
     const_cast<QXdgDesktopEntryPrivate *>(d)->get(section, key, &result); // FIXME: better way than const_cast?
     return result;
 }
 
-// NO localeString will be served by this method.
-QXdgDesktopEntry::ValueType QXdgDesktopEntry::guessType(const QString &rawValueStr)
+QVariant QXdgDesktopEntry::localizedValue(const QString &key, const QString &localeKey, const QString &section, const QVariant &defaultValue) const
 {
-    // TODO
-    return String;
+    Q_D(const QXdgDesktopEntry);
+    QVariant result = defaultValue;
+    QString actualLocaleKey = QLatin1String("C");
+    if (key.isEmpty() || section.isEmpty()) {
+        qWarning("QXdgDesktopEntry::localizedValue: Empty key or section passed");
+        return result;
+    }
+
+    QStringList possibleKeys;
+
+    if (!localeKey.isEmpty()) {
+        if (localeKey == "empty") {
+            possibleKeys << key;
+        } else if (localeKey == "default") {
+            possibleKeys << QString("%1[%2]").arg(key, QLocale().name());
+        } else if (localeKey == "system") {
+            possibleKeys << QString("%1[%2]").arg(key, QLocale::system().name());
+        } else {
+            possibleKeys << QString("%1[%2]").arg(key, localeKey);
+        }
+    }
+
+    if (!actualLocaleKey.isEmpty()) {
+        possibleKeys << QString("%1[%2]").arg(key, actualLocaleKey);
+    }
+    possibleKeys << QString("%1[%2]").arg(key, "C");
+    possibleKeys << key;
+
+    for (const QString &oneKey : possibleKeys) {
+        if (d->contains(section, oneKey)) {
+            const_cast<QXdgDesktopEntryPrivate *>(d)->get(section, oneKey, &result); // FIXME: better way than const_cast?
+            break;
+        }
+    }
+
+    return result;
 }
 
-// NO localeString will be served by this method.
-QVariant QXdgDesktopEntry::stringToVariant(const QString &rawValueStr)
+/************************************************
+ The escape sequences \s, \n, \t, \r, and \\ are supported for values
+ of type string and localestring, meaning ASCII space, newline, tab,
+ carriage return, and backslash, respectively.
+ ************************************************/
+QString &QXdgDesktopEntry::escape(QString &str)
 {
-    // TODO
-    return QVariant(rawValueStr);
+    QHash<QChar,QChar> repl;
+    repl.insert(QLatin1Char('\n'),  QLatin1Char('n'));
+    repl.insert(QLatin1Char('\t'),  QLatin1Char('t'));
+    repl.insert(QLatin1Char('\r'),  QLatin1Char('r'));
+
+    return doEscape(str, repl);
+}
+
+/************************************************
+ Quoting must be done by enclosing the argument between double quotes and
+ escaping the
+    double quote character,
+    backtick character ("`"),
+    dollar sign ("$") and
+    backslash character ("\")
+by preceding it with an additional backslash character.
+Implementations must undo quoting before expanding field codes and before
+passing the argument to the executable program.
+
+Note that the general escape rule for values of type string states that the
+backslash character can be escaped as ("\\") as well and that this escape
+rule is applied before the quoting rule. As such, to unambiguously represent a
+literal backslash character in a quoted argument in a desktop entry file
+requires the use of four successive backslash characters ("\\\\").
+Likewise, a literal dollar sign in a quoted argument in a desktop entry file
+is unambiguously represented with ("\\$").
+ ************************************************/
+QString &QXdgDesktopEntry::escapeExec(QString &str)
+{
+    QHash<QChar,QChar> repl;
+    // The parseCombinedArgString() splits the string by the space symbols,
+    // we temporarily replace them on the special characters.
+    // Replacement will reverse after the splitting.
+    repl.insert(QLatin1Char('"'), QLatin1Char('"'));    // double quote,
+    repl.insert(QLatin1Char('\''), QLatin1Char('\''));  // single quote ("'"),
+    repl.insert(QLatin1Char('\\'), QLatin1Char('\\'));  // backslash character ("\"),
+    repl.insert(QLatin1Char('$'), QLatin1Char('$'));    // dollar sign ("$"),
+
+    return doEscape(str, repl);
+}
+
+/************************************************
+ The escape sequences \s, \n, \t, \r, and \\ are supported for values
+ of type string and localestring, meaning ASCII space, newline, tab,
+ carriage return, and backslash, respectively.
+ ************************************************/
+QString &QXdgDesktopEntry::unescape(QString &str)
+{
+    QHash<QChar,QChar> repl;
+    repl.insert(QLatin1Char('\\'), QLatin1Char('\\'));
+    repl.insert(QLatin1Char('s'),  QLatin1Char(' '));
+    repl.insert(QLatin1Char('n'),  QLatin1Char('\n'));
+    repl.insert(QLatin1Char('t'),  QLatin1Char('\t'));
+    repl.insert(QLatin1Char('r'),  QLatin1Char('\r'));
+
+    return doUnescape(str, repl);
+}
+
+/************************************************
+ Quoting must be done by enclosing the argument between double quotes and
+ escaping the
+    double quote character,
+    backtick character ("`"),
+    dollar sign ("$") and
+    backslash character ("\")
+by preceding it with an additional backslash character.
+Implementations must undo quoting before expanding field codes and before
+passing the argument to the executable program.
+
+Reserved characters are
+    space (" "),
+    tab,
+    newline,
+    double quote,
+    single quote ("'"),
+    backslash character ("\"),
+    greater-than sign (">"),
+    less-than sign ("<"),
+    tilde ("~"),
+    vertical bar ("|"),
+    ampersand ("&"),
+    semicolon (";"),
+    dollar sign ("$"),
+    asterisk ("*"),
+    question mark ("?"),
+    hash mark ("#"),
+    parenthesis ("(") and (")")
+    backtick character ("`").
+
+Note that the general escape rule for values of type string states that the
+backslash character can be escaped as ("\\") as well and that this escape
+rule is applied before the quoting rule. As such, to unambiguously represent a
+literal backslash character in a quoted argument in a desktop entry file
+requires the use of four successive backslash characters ("\\\\").
+Likewise, a literal dollar sign in a quoted argument in a desktop entry file
+is unambiguously represented with ("\\$").
+ ************************************************/
+QString &QXdgDesktopEntry::unescapeExec(QString &str)
+{
+    unescape(str);
+    QHash<QChar,QChar> repl;
+    // The parseCombinedArgString() splits the string by the space symbols,
+    // we temporarily replace them on the special characters.
+    // Replacement will reverse after the splitting.
+    repl.insert(QLatin1Char(' '),  01);    // space
+    repl.insert(QLatin1Char('\t'), 02);    // tab
+    repl.insert(QLatin1Char('\n'), 03);    // newline,
+
+    repl.insert(QLatin1Char('"'), QLatin1Char('"'));    // double quote,
+    repl.insert(QLatin1Char('\''), QLatin1Char('\''));  // single quote ("'"),
+    repl.insert(QLatin1Char('\\'), QLatin1Char('\\'));  // backslash character ("\"),
+    repl.insert(QLatin1Char('>'), QLatin1Char('>'));    // greater-than sign (">"),
+    repl.insert(QLatin1Char('<'), QLatin1Char('<'));    // less-than sign ("<"),
+    repl.insert(QLatin1Char('~'), QLatin1Char('~'));    // tilde ("~"),
+    repl.insert(QLatin1Char('|'), QLatin1Char('|'));    // vertical bar ("|"),
+    repl.insert(QLatin1Char('&'), QLatin1Char('&'));    // ampersand ("&"),
+    repl.insert(QLatin1Char(';'), QLatin1Char(';'));    // semicolon (";"),
+    repl.insert(QLatin1Char('$'), QLatin1Char('$'));    // dollar sign ("$"),
+    repl.insert(QLatin1Char('*'), QLatin1Char('*'));    // asterisk ("*"),
+    repl.insert(QLatin1Char('?'), QLatin1Char('?'));    // question mark ("?"),
+    repl.insert(QLatin1Char('#'), QLatin1Char('#'));    // hash mark ("#"),
+    repl.insert(QLatin1Char('('), QLatin1Char('('));    // parenthesis ("(")
+    repl.insert(QLatin1Char(')'), QLatin1Char(')'));    // parenthesis (")")
+    repl.insert(QLatin1Char('`'), QLatin1Char('`'));    // backtick character ("`").
+
+    return doUnescape(str, repl);
 }

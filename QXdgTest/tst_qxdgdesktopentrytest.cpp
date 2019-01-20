@@ -33,7 +33,7 @@ public:
     QXdgDesktopEntryTest();
 
 private Q_SLOTS:
-    void testCase_What();
+    void testCase_ParseFile();
 };
 
 QXdgDesktopEntryTest::QXdgDesktopEntryTest()
@@ -46,6 +46,7 @@ const QString testFileContent = { QStringLiteral(R"desktop(# A. Example Desktop 
 Version=1.0
 Type=Application
 Name=Foo Viewer
+Name[zh_CN]=福查看器
 Comment=The best viewer for Foo objects available!
 TryExec=fooview
 Exec=fooview %F
@@ -63,7 +64,7 @@ Name=Create a new Foo!
 Icon=fooview-new
 )desktop") };
 
-void QXdgDesktopEntryTest::testCase_What()
+void QXdgDesktopEntryTest::testCase_ParseFile()
 {
     QTemporaryFile file("testReadXXXXXX.desktop");
     QVERIFY(file.open());
@@ -74,7 +75,29 @@ void QXdgDesktopEntryTest::testCase_What()
     QVERIFY(QFile::exists(fileName));
 
     QXdgDesktopEntry *desktopFile = new QXdgDesktopEntry(fileName);
-    qDebug() << desktopFile->allGroups();
+    QStringList allGroups = desktopFile->allGroups();
+    QVERIFY(allGroups.count() == 3);
+    QVERIFY(allGroups.contains("Desktop Entry") &&
+            allGroups.contains("Desktop Action Gallery") &&
+            allGroups.contains("Desktop Action Create"));
+    QVERIFY(desktopFile->localizedValue("Name", "zh_CN") == QStringLiteral("福查看器"));
+    QVERIFY(desktopFile->localizedValue("Name", "empty") == QStringLiteral("Foo Viewer"));
+
+    {
+        struct RestoreLocale {
+            ~RestoreLocale() { QLocale::setDefault(QLocale::system()); }
+        } restoreLocale;
+        Q_UNUSED(restoreLocale);
+
+        QLocale::setDefault(QLocale("zh_CN"));
+        QVERIFY(desktopFile->localizedValue("Name") == QStringLiteral("福查看器"));
+
+        QLocale::setDefault(QLocale::c());
+        QVERIFY(desktopFile->localizedValue("Name") == QStringLiteral("Foo Viewer"));
+    }
+
+    QVERIFY(desktopFile->value("Name") == QStringLiteral("Foo Viewer"));
+
     qDebug() << desktopFile->value("Actions");
 }
 

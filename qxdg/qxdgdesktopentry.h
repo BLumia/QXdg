@@ -48,7 +48,7 @@ public:
     enum ValueType {
         Unparsed = 0,
         String,
-        LocaleString, // consider remove it?
+        Strings,
         Boolean,
         Numeric,
         NotExisted = 99
@@ -71,20 +71,20 @@ public:
 
     QVariant value(const QString& key, const QString& section = "Desktop Entry",
                    const QVariant& defaultValue = QVariant()) const;
-    QVariant localizedValue(const QString& key, const QString& localeKey = "user",
+    QVariant localizedValue(const QString& key, const QString& localeKey = "default",
                             const QString& section = "Desktop Entry", const QVariant& defaultValue = QVariant()) const;
     void setValue(const QString &key, const QVariant &value);
     void setLocalizedValue(const QString &key, const QVariant &value);
 
-    static QXdgDesktopEntry::ValueType guessType(const QString& rawValueStr);
-    static QVariant stringToVariant(const QString& rawValueStr);
+    static QString &escape(QString& str);
+    static QString &escapeExec(QString& str);
+    static QString &unescape(QString& str);
+    static QString &unescapeExec(QString& str);
 
 private:
     QScopedPointer<QXdgDesktopEntryPrivate> d_ptr;
 
     Q_DECLARE_PRIVATE(QXdgDesktopEntry)
 };
-
-typedef QMap<QString, QString> LocaleString;
 
 #endif // QXDGDESKTOPENTRY_H
