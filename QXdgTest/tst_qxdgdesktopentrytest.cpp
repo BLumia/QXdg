@@ -101,8 +101,12 @@ void QXdgDesktopEntryTest::testCase_ParseFile()
     QCOMPARE(desktopFile->stringValue("Name"), QStringLiteral("Bar Viewer"));
     QCOMPARE(desktopFile->setLocalizedValue("霸查看器", "zh_CN", "Name"), true);
     QCOMPARE(desktopFile->localizedValue("Name", "zh_CN"), QStringLiteral("霸查看器"));
+    QCOMPARE(desktopFile->contains("Semicolon"), false);
     QCOMPARE(desktopFile->setRawValue(";grp\\;2;grp3;", "Semicolon"), true);
     QCOMPARE(desktopFile->stringListValue("Semicolon"), QStringList({"", "grp;2", "grp3"}));
+    QCOMPARE(desktopFile->contains("Semicolon"), true);
+    QCOMPARE(desktopFile->removeEntry("Semicolon"), true);
+    QCOMPARE(desktopFile->contains("Semicolon"), false);
 }
 
 QTEST_APPLESS_MAIN(QXdgDesktopEntryTest)

@@ -69,6 +69,8 @@ public:
 
     QStringList allGroups() const;
 
+    bool contains(const QString& key, const QString &section = "Desktop Entry") const;
+
     QString rawValue(const QString& key, const QString& section = "Desktop Entry",
                      const QString &defaultValue = QString()) const;
     QString stringValue(const QString& key, const QString& section = "Desktop Entry",
@@ -81,6 +83,8 @@ public:
     bool setStringValue(const QString &value, const QString &key, const QString& section = "Desktop Entry");
     bool setLocalizedValue(const QString &value, const QString& localeKey,
                            const QString &key, const QString& section = "Desktop Entry");
+
+    bool removeEntry(const QString& key, const QString &section = "Desktop Entry");
 
     static QString &escape(QString& str);
     static QString &escapeExec(QString& str);

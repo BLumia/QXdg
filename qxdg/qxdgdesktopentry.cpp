@@ -213,6 +213,14 @@ public:
         valuesMap[key] = value;
         return true;
     }
+
+    bool remove(const QString &key) {
+        if (this->contains(key)) {
+            valuesMap.remove(key);
+            return true;
+        }
+        return false;
+    }
 };
 
 class QXdgDesktopEntryPrivate
@@ -228,6 +236,7 @@ public:
     bool contains(const QString &sectionName, const QString &key) const;
     bool get(const QString &sectionName, const QString &key, QString *value);
     bool set(const QString &sectionName, const QString &key, const QString &value);
+    bool remove(const QString &sectionName, const QString &key);
 
 protected:
     QString filePath;
@@ -403,6 +412,14 @@ bool QXdgDesktopEntryPrivate::set(const QString &sectionName, const QString &key
     return false;
 }
 
+bool QXdgDesktopEntryPrivate::remove(const QString &sectionName, const QString &key)
+{
+    if (this->contains(sectionName, key)) {
+        return sectionsMap[sectionName].remove(key);
+    }
+    return false;
+}
+
 QXdgDesktopEntry::QXdgDesktopEntry(QString filePath)
     : d_ptr(new QXdgDesktopEntryPrivate(filePath, this))
 {
@@ -420,6 +437,18 @@ QStringList QXdgDesktopEntry::allGroups() const
     Q_D(const QXdgDesktopEntry);
 
     return d->sectionsMap.keys();
+}
+
+bool QXdgDesktopEntry::contains(const QString &key, const QString &section) const
+{
+    Q_D(const QXdgDesktopEntry);
+
+    if (key.isEmpty() || section.isEmpty()) {
+        qWarning("QXdgDesktopEntry::contains: Empty key or section passed");
+        return false;
+    }
+
+    return d->contains(section, key);
 }
 
 QString QXdgDesktopEntry::rawValue(const QString &key, const QString &section, const QString &defaultValue) const
@@ -515,7 +544,7 @@ bool QXdgDesktopEntry::setRawValue(const QString &value, const QString &key, con
 {
     Q_D(QXdgDesktopEntry);
     if (key.isEmpty() || section.isEmpty()) {
-        qWarning("QXdgDesktopEntry::setValue: Empty key or section passed");
+        qWarning("QXdgDesktopEntry::setRawValue: Empty key or section passed");
         return false;
     }
 
@@ -542,6 +571,17 @@ bool QXdgDesktopEntry::setLocalizedValue(const QString &value, const QString &lo
     QString actualKey = localeKey.isEmpty() ? key : QString("%1[%2]").arg(key, localeKey);
 
     bool result = d->set(section, actualKey, value);
+    return result;
+}
+
+bool QXdgDesktopEntry::removeEntry(const QString &key, const QString &section)
+{
+    Q_D(QXdgDesktopEntry);
+    if (key.isEmpty() || section.isEmpty()) {
+        qWarning("QXdgDesktopEntry::setLocalizedValue: Empty key or section passed");
+        return false;
+    }
+    bool result = d->remove(section, key);
     return result;
 }
 
