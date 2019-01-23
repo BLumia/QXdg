@@ -388,10 +388,6 @@ bool QXdgDesktopEntryPrivate::get(const QString &sectionName, const QString &key
 
 bool QXdgDesktopEntryPrivate::set(const QString &sectionName, const QString &key, const QString &value)
 {
-    if (!this->contains(sectionName, key)) {
-        return false;
-    }
-
     if (sectionsMap.contains(sectionName)) {
         bool result = sectionsMap[sectionName].set(key, value);
         return result;
@@ -426,7 +422,7 @@ QStringList QXdgDesktopEntry::allGroups() const
     return d->sectionsMap.keys();
 }
 
-QString QXdgDesktopEntry::value(const QString &key, const QString &section, const QString &defaultValue) const
+QString QXdgDesktopEntry::rawValue(const QString &key, const QString &section, const QString &defaultValue) const
 {
     Q_D(const QXdgDesktopEntry);
     QString result = defaultValue;
@@ -436,6 +432,13 @@ QString QXdgDesktopEntry::value(const QString &key, const QString &section, cons
     }
     const_cast<QXdgDesktopEntryPrivate *>(d)->get(section, key, &result); // FIXME: better way than const_cast?
     return result;
+}
+
+QString QXdgDesktopEntry::stringValue(const QString &key, const QString &section, const QString &defaultValue) const
+{
+    QString rawResult = rawValue(key, section, defaultValue);
+    rawResult = QXdgDesktopEntry::unescape(rawResult);
+    return rawResult;
 }
 
 QString QXdgDesktopEntry::localizedValue(const QString &key, const QString &localeKey, const QString &section, const QString &defaultValue) const
@@ -478,7 +481,37 @@ QString QXdgDesktopEntry::localizedValue(const QString &key, const QString &loca
     return result;
 }
 
-bool QXdgDesktopEntry::setValue(const QString &value, const QString &key, const QString &section)
+QStringList QXdgDesktopEntry::stringListValue(const QString &key, const QString &section) const
+{
+    Q_D(const QXdgDesktopEntry);
+
+    QString value;
+
+    const_cast<QXdgDesktopEntryPrivate *>(d)->get(section, key, &value); // FIXME: better way than const_cast?
+
+    if (value.endsWith(';')) {
+        value = value.left(value.length() - 1);
+    }
+    QStringList&& strings = value.split(';');
+
+    QString combine;
+    QStringList result;
+    for (QString oneStr : strings) {
+        if (oneStr.endsWith('\\')) {
+            combine = combine + oneStr + ';';
+            continue;
+        }
+        if (!combine.isEmpty()) {
+            oneStr = combine + oneStr;
+            combine.clear();
+        }
+        result << QXdgDesktopEntry::unescape(oneStr, true);
+    }
+
+    return result;
+}
+
+bool QXdgDesktopEntry::setRawValue(const QString &value, const QString &key, const QString &section)
 {
     Q_D(QXdgDesktopEntry);
     if (key.isEmpty() || section.isEmpty()) {
@@ -487,6 +520,14 @@ bool QXdgDesktopEntry::setValue(const QString &value, const QString &key, const 
     }
 
     bool result = d->set(section, key, value);
+    return result;
+}
+
+bool QXdgDesktopEntry::setStringValue(const QString &value, const QString &key, const QString &section)
+{
+    QString escapedValue = value;
+    QXdgDesktopEntry::escape(escapedValue);
+    bool result = setRawValue(escapedValue, key, section);
     return result;
 }
 
@@ -552,12 +593,18 @@ QString &QXdgDesktopEntry::escapeExec(QString &str)
     return doEscape(str, repl);
 }
 
-/************************************************
- The escape sequences \s, \n, \t, \r, and \\ are supported for values
- of type string and localestring, meaning ASCII space, newline, tab,
- carriage return, and backslash, respectively.
- ************************************************/
-QString &QXdgDesktopEntry::unescape(QString &str)
+/*
+ * The escape sequences \s, \n, \t, \r, and \\ are supported for values of type string and localestring,
+ * meaning ASCII space, newline, tab, carriage return, and backslash, respectively.
+ *
+ * Some keys can have multiple values. In such a case, the value of the key is specified as a plural: for
+ * example, string(s). The multiple values should be separated by a semicolon and the value of the key may
+ * be optionally terminated by a semicolon. Trailing empty strings must always be terminated with a semicolon.
+ * Semicolons in these values need to be escaped using \;.
+ *
+ * https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html#value-types
+*/
+QString &QXdgDesktopEntry::unescape(QString &str, bool unescapeSemicolons)
 {
     QHash<QChar,QChar> repl;
     repl.insert(QLatin1Char('\\'), QLatin1Char('\\'));
@@ -565,6 +612,10 @@ QString &QXdgDesktopEntry::unescape(QString &str)
     repl.insert(QLatin1Char('n'),  QLatin1Char('\n'));
     repl.insert(QLatin1Char('t'),  QLatin1Char('\t'));
     repl.insert(QLatin1Char('r'),  QLatin1Char('\r'));
+
+    if (unescapeSemicolons) {
+        repl.insert(QLatin1Char(';'),  QLatin1Char(';'));
+    }
 
     return doUnescape(str, repl);
 }

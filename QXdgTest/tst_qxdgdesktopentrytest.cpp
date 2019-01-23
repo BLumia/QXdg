@@ -96,14 +96,13 @@ void QXdgDesktopEntryTest::testCase_ParseFile()
         QCOMPARE(desktopFile->localizedValue("Name"), QStringLiteral("Foo Viewer"));
     }
 
-    QCOMPARE(desktopFile->value("Name"), QStringLiteral("Foo Viewer"));
-
-    QCOMPARE(desktopFile->setValue("Bar Viewer", "Name"), true);
-    QCOMPARE(desktopFile->value("Name"), QStringLiteral("Bar Viewer"));
+    QCOMPARE(desktopFile->stringValue("Name"), QStringLiteral("Foo Viewer"));
+    QCOMPARE(desktopFile->setRawValue("Bar Viewer", "Name"), true);
+    QCOMPARE(desktopFile->stringValue("Name"), QStringLiteral("Bar Viewer"));
     QCOMPARE(desktopFile->setLocalizedValue("霸查看器", "zh_CN", "Name"), true);
     QCOMPARE(desktopFile->localizedValue("Name", "zh_CN"), QStringLiteral("霸查看器"));
-
-    qDebug() << desktopFile->value("Actions");
+    QCOMPARE(desktopFile->setRawValue(";grp\\;2;grp3;", "Semicolon"), true);
+    QCOMPARE(desktopFile->stringListValue("Semicolon"), QStringList({"", "grp;2", "grp3"}));
 }
 
 QTEST_APPLESS_MAIN(QXdgDesktopEntryTest)

@@ -69,17 +69,22 @@ public:
 
     QStringList allGroups() const;
 
-    QString value(const QString& key, const QString& section = "Desktop Entry",
-                   const QString &defaultValue = QString()) const;
+    QString rawValue(const QString& key, const QString& section = "Desktop Entry",
+                     const QString &defaultValue = QString()) const;
+    QString stringValue(const QString& key, const QString& section = "Desktop Entry",
+                        const QString &defaultValue = QString()) const;
     QString localizedValue(const QString& key, const QString& localeKey = "default",
                             const QString& section = "Desktop Entry", const QString& defaultValue = QString()) const;
-    bool setValue(const QString &value, const QString &key, const QString& section = "Desktop Entry");
+    QStringList stringListValue(const QString& key, const QString& section = "Desktop Entry") const;
+
+    bool setRawValue(const QString &value, const QString &key, const QString& section = "Desktop Entry");
+    bool setStringValue(const QString &value, const QString &key, const QString& section = "Desktop Entry");
     bool setLocalizedValue(const QString &value, const QString& localeKey,
                            const QString &key, const QString& section = "Desktop Entry");
 
     static QString &escape(QString& str);
     static QString &escapeExec(QString& str);
-    static QString &unescape(QString& str);
+    static QString &unescape(QString& str, bool unescapeSemicolons = false);
     static QString &unescapeExec(QString& str);
 
 private:
