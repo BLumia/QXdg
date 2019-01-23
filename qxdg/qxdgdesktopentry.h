@@ -69,12 +69,13 @@ public:
 
     QStringList allGroups() const;
 
-    QVariant value(const QString& key, const QString& section = "Desktop Entry",
-                   const QVariant& defaultValue = QVariant()) const;
-    QVariant localizedValue(const QString& key, const QString& localeKey = "default",
-                            const QString& section = "Desktop Entry", const QVariant& defaultValue = QVariant()) const;
-    void setValue(const QString &key, const QVariant &value);
-    void setLocalizedValue(const QString &key, const QVariant &value);
+    QString value(const QString& key, const QString& section = "Desktop Entry",
+                   const QString &defaultValue = QString()) const;
+    QString localizedValue(const QString& key, const QString& localeKey = "default",
+                            const QString& section = "Desktop Entry", const QString& defaultValue = QString()) const;
+    bool setValue(const QString &value, const QString &key, const QString& section = "Desktop Entry");
+    bool setLocalizedValue(const QString &value, const QString& localeKey,
+                           const QString &key, const QString& section = "Desktop Entry");
 
     static QString &escape(QString& str);
     static QString &escapeExec(QString& str);

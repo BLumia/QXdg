@@ -154,42 +154,11 @@ QString &doUnescape(QString& str, const QHash<QChar,QChar> &repl)
     return str;
 }
 
-class QXdgDesktopEntryValue
-{
-public:
-    explicit QXdgDesktopEntryValue() {}
-    QXdgDesktopEntryValue(QXdgDesktopEntry::ValueType type, QVariant value) : type(type), value(value) {}
-
-    bool isEmpty() const {
-        return (type != QXdgDesktopEntry::NotExisted || value.isNull());
-    }
-
-    void parse() {
-        if (type != QXdgDesktopEntry::Unparsed) return;
-        if (isEmpty()) return;
-
-        Q_ASSERT(type == QXdgDesktopEntry::Unparsed);
-
-        QString rawString = value.toString();
-//        QXdgDesktopEntry::ValueType detectedType = QXdgDesktopEntry::Unparsed;
-
-//        for (auto &ch : rawString) {
-
-//        }
-
-        // TODO
-        type = QXdgDesktopEntry::String;
-    }
-
-    QXdgDesktopEntry::ValueType type = QXdgDesktopEntry::NotExisted;
-    QVariant value;
-};
-
 class QXdgDesktopEntrySection
 {
 public:
     QString name;
-    QMap<QString, QXdgDesktopEntryValue> valuesMap;
+    QMap<QString, QString> valuesMap;
     QByteArray unparsedDatas;
     int sectionPos = -1;
 
@@ -215,11 +184,13 @@ public:
                 QString key = unparsedDatas.mid(lineStart, equalsPos - lineStart).trimmed();
                 QString rawValue = unparsedDatas.mid(equalsPos + 1, lineStart + lineLen - equalsPos - 1).trimmed();
 
-                valuesMap[key] = QXdgDesktopEntryValue(QXdgDesktopEntry::Unparsed, rawValue);
+                valuesMap[key] = rawValue;
             }
         }
 
-        return false;
+        unparsedDatas.clear();
+
+        return true;
     }
 
     bool contains(const QString &key) const {
@@ -227,16 +198,20 @@ public:
         return valuesMap.contains(key);
     }
 
-    QXdgDesktopEntryValue get(const QString &key, QVariant &defaultValue) {
+    QString get(const QString &key, QString &defaultValue) {
         if (this->contains(key)) {
-            QXdgDesktopEntryValue &value = valuesMap[key];
-            if (value.type == QXdgDesktopEntry::Unparsed) {
-                value.parse();
-            }
-            return value;
+            return valuesMap[key];
         } else {
-            return QXdgDesktopEntryValue(QXdgDesktopEntry::NotExisted, defaultValue);
+            return defaultValue;
         }
+    }
+
+    bool set(const QString &key, const QString &value) {
+        if (this->contains(key)) {
+            valuesMap.remove(key);
+        }
+        valuesMap[key] = value;
+        return true;
     }
 };
 
@@ -251,7 +226,8 @@ public:
     void setStatus(QXdgDesktopEntry::Status newStatus) const;
 
     bool contains(const QString &sectionName, const QString &key) const;
-    bool get(const QString &sectionName, const QString &key, QVariant *value);
+    bool get(const QString &sectionName, const QString &key, QString *value);
+    bool set(const QString &sectionName, const QString &key, const QString &value);
 
 protected:
     QString filePath;
@@ -395,18 +371,37 @@ bool QXdgDesktopEntryPrivate::contains(const QString &sectionName, const QString
 }
 
 // return true if we found the value, and set the value to *value
-bool QXdgDesktopEntryPrivate::get(const QString &sectionName, const QString &key, QVariant *value)
+bool QXdgDesktopEntryPrivate::get(const QString &sectionName, const QString &key, QString *value)
 {
     if (!this->contains(sectionName, key)) {
         return false;
     }
 
     if (sectionsMap.contains(sectionName)) {
-        QXdgDesktopEntryValue &&result = sectionsMap[sectionName].get(key, *value);
-        if (result.type != QXdgDesktopEntry::NotExisted) {
-            *value = result.value;
-            return true;
-        }
+        QString &&result = sectionsMap[sectionName].get(key, *value);
+        *value = result;
+        return true;
+    }
+
+    return false;
+}
+
+bool QXdgDesktopEntryPrivate::set(const QString &sectionName, const QString &key, const QString &value)
+{
+    if (!this->contains(sectionName, key)) {
+        return false;
+    }
+
+    if (sectionsMap.contains(sectionName)) {
+        bool result = sectionsMap[sectionName].set(key, value);
+        return result;
+    } else {
+        // create new section.
+        QXdgDesktopEntrySection newSection;
+        newSection.name = sectionName;
+        newSection.set(key, value);
+        sectionsMap[sectionName] = newSection;
+        return true;
     }
 
     return false;
@@ -418,6 +413,12 @@ QXdgDesktopEntry::QXdgDesktopEntry(QString filePath)
 
 }
 
+QXdgDesktopEntry::Status QXdgDesktopEntry::status() const
+{
+    Q_D(const QXdgDesktopEntry);
+    return d->status;
+}
+
 QStringList QXdgDesktopEntry::allGroups() const
 {
     Q_D(const QXdgDesktopEntry);
@@ -425,10 +426,10 @@ QStringList QXdgDesktopEntry::allGroups() const
     return d->sectionsMap.keys();
 }
 
-QVariant QXdgDesktopEntry::value(const QString &key, const QString &section, const QVariant &defaultValue) const
+QString QXdgDesktopEntry::value(const QString &key, const QString &section, const QString &defaultValue) const
 {
     Q_D(const QXdgDesktopEntry);
-    QVariant result = defaultValue;
+    QString result = defaultValue;
     if (key.isEmpty() || section.isEmpty()) {
         qWarning("QXdgDesktopEntry::value: Empty key or section passed");
         return result;
@@ -437,10 +438,10 @@ QVariant QXdgDesktopEntry::value(const QString &key, const QString &section, con
     return result;
 }
 
-QVariant QXdgDesktopEntry::localizedValue(const QString &key, const QString &localeKey, const QString &section, const QVariant &defaultValue) const
+QString QXdgDesktopEntry::localizedValue(const QString &key, const QString &localeKey, const QString &section, const QString &defaultValue) const
 {
     Q_D(const QXdgDesktopEntry);
-    QVariant result = defaultValue;
+    QString result = defaultValue;
     QString actualLocaleKey = QLatin1String("C");
     if (key.isEmpty() || section.isEmpty()) {
         qWarning("QXdgDesktopEntry::localizedValue: Empty key or section passed");
@@ -474,6 +475,32 @@ QVariant QXdgDesktopEntry::localizedValue(const QString &key, const QString &loc
         }
     }
 
+    return result;
+}
+
+bool QXdgDesktopEntry::setValue(const QString &value, const QString &key, const QString &section)
+{
+    Q_D(QXdgDesktopEntry);
+    if (key.isEmpty() || section.isEmpty()) {
+        qWarning("QXdgDesktopEntry::setValue: Empty key or section passed");
+        return false;
+    }
+
+    bool result = d->set(section, key, value);
+    return result;
+}
+
+bool QXdgDesktopEntry::setLocalizedValue(const QString &value, const QString &localeKey, const QString &key, const QString &section)
+{
+    Q_D(QXdgDesktopEntry);
+    if (key.isEmpty() || section.isEmpty()) {
+        qWarning("QXdgDesktopEntry::setLocalizedValue: Empty key or section passed");
+        return false;
+    }
+
+    QString actualKey = localeKey.isEmpty() ? key : QString("%1[%2]").arg(key, localeKey);
+
+    bool result = d->set(section, actualKey, value);
     return result;
 }
 

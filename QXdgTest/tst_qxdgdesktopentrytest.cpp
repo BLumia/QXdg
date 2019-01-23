@@ -76,12 +76,12 @@ void QXdgDesktopEntryTest::testCase_ParseFile()
 
     QXdgDesktopEntry *desktopFile = new QXdgDesktopEntry(fileName);
     QStringList allGroups = desktopFile->allGroups();
-    QVERIFY(allGroups.count() == 3);
+    QCOMPARE(allGroups.count(), 3);
     QVERIFY(allGroups.contains("Desktop Entry") &&
             allGroups.contains("Desktop Action Gallery") &&
             allGroups.contains("Desktop Action Create"));
-    QVERIFY(desktopFile->localizedValue("Name", "zh_CN") == QStringLiteral("福查看器"));
-    QVERIFY(desktopFile->localizedValue("Name", "empty") == QStringLiteral("Foo Viewer"));
+    QCOMPARE(desktopFile->localizedValue("Name", "zh_CN"), QStringLiteral("福查看器"));
+    QCOMPARE(desktopFile->localizedValue("Name", "empty"), QStringLiteral("Foo Viewer"));
 
     {
         struct RestoreLocale {
@@ -90,13 +90,18 @@ void QXdgDesktopEntryTest::testCase_ParseFile()
         Q_UNUSED(restoreLocale);
 
         QLocale::setDefault(QLocale("zh_CN"));
-        QVERIFY(desktopFile->localizedValue("Name") == QStringLiteral("福查看器"));
+        QCOMPARE(desktopFile->localizedValue("Name"), QStringLiteral("福查看器"));
 
         QLocale::setDefault(QLocale::c());
-        QVERIFY(desktopFile->localizedValue("Name") == QStringLiteral("Foo Viewer"));
+        QCOMPARE(desktopFile->localizedValue("Name"), QStringLiteral("Foo Viewer"));
     }
 
-    QVERIFY(desktopFile->value("Name") == QStringLiteral("Foo Viewer"));
+    QCOMPARE(desktopFile->value("Name"), QStringLiteral("Foo Viewer"));
+
+    QCOMPARE(desktopFile->setValue("Bar Viewer", "Name"), true);
+    QCOMPARE(desktopFile->value("Name"), QStringLiteral("Bar Viewer"));
+    QCOMPARE(desktopFile->setLocalizedValue("霸查看器", "zh_CN", "Name"), true);
+    QCOMPARE(desktopFile->localizedValue("Name", "zh_CN"), QStringLiteral("霸查看器"));
 
     qDebug() << desktopFile->value("Actions");
 }
