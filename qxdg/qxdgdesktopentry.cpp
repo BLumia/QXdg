@@ -27,6 +27,7 @@
 #include <QMutex>
 #include <QTemporaryFile>
 #include <QDebug>
+#include <QSaveFile>
 
 enum { Space = 0x1, Special = 0x2 };
 
@@ -166,6 +167,24 @@ public:
         return QLatin1String("QXdgDesktopEntrySection(") + name + QLatin1String(")");
     }
 
+    QByteArray sectionData() const {
+        if (unparsedDatas.isEmpty()) {
+            // construct data and return
+            QByteArray data;
+
+            data.append(QString("[%1]\n").arg(name));
+
+            QMap<QString, QString>::const_iterator i;
+            for (i = valuesMap.begin(); i != valuesMap.end(); i++) {
+                data.append(QString("%1=%2\n").arg(i.key(), i.value()));
+            }
+
+            return data;
+        } else {
+            return unparsedDatas;
+        }
+    }
+
     bool ensureSectionDataParsed() {
         if (unparsedDatas.isEmpty()) return true;
 
@@ -223,6 +242,8 @@ public:
     }
 };
 
+typedef QMap<QString, QXdgDesktopEntrySection> SectionMap;
+
 class QXdgDesktopEntryPrivate
 {
 public:
@@ -232,6 +253,7 @@ public:
     bool fuzzyLoad();
     bool initSectionsFromData(const QByteArray &data);
     void setStatus(QXdgDesktopEntry::Status newStatus) const;
+    bool write(QIODevice &device) const;
 
     bool contains(const QString &sectionName, const QString &key) const;
     bool get(const QString &sectionName, const QString &key, QString *value);
@@ -242,7 +264,7 @@ protected:
     QString filePath;
     QMutex fileMutex;
     mutable QXdgDesktopEntry::Status status;
-    QMap<QString, QXdgDesktopEntrySection> sectionsMap;
+    SectionMap sectionsMap;
 
 private:
     QXdgDesktopEntry *q_ptr = nullptr;
@@ -366,6 +388,16 @@ void QXdgDesktopEntryPrivate::setStatus(QXdgDesktopEntry::Status newStatus) cons
     }
 }
 
+bool QXdgDesktopEntryPrivate::write(QIODevice &device) const
+{
+    for (SectionMap::const_iterator i = sectionsMap.begin(); i != sectionsMap.end(); ++i) {
+        int ret = device.write(i->sectionData());
+        if (ret == -1) return false;
+    }
+
+    return true;
+}
+
 bool QXdgDesktopEntryPrivate::contains(const QString &sectionName, const QString &key) const
 {
     if (sectionName.isNull() || key.isNull()) {
@@ -386,6 +418,7 @@ bool QXdgDesktopEntryPrivate::get(const QString &sectionName, const QString &key
         return false;
     }
 
+    // TODO: keep group order
     if (sectionsMap.contains(sectionName)) {
         QString &&result = sectionsMap[sectionName].get(key, *value);
         *value = result;
@@ -424,6 +457,52 @@ QXdgDesktopEntry::QXdgDesktopEntry(QString filePath)
     : d_ptr(new QXdgDesktopEntryPrivate(filePath, this))
 {
 
+}
+
+bool QXdgDesktopEntry::save() const
+{
+    Q_D(const QXdgDesktopEntry);
+
+    // write to file.
+    if (d->isWritable()) {
+        bool ok = false;
+        bool createFile = false;
+        QFileInfo fileInfo(d->filePath);
+
+#if !defined(QT_BOOTSTRAPPED) && QT_CONFIG(temporaryfile)
+        QSaveFile sf(d->filePath);
+        sf.setDirectWriteFallback(true);
+#else
+        QFile sf(d->filePath);
+#endif
+        if (!sf.open(QIODevice::WriteOnly)) {
+            d->setStatus(QXdgDesktopEntry::AccessError);
+            return false;
+        }
+
+        ok = d->write(sf);
+
+#if !defined(QT_BOOTSTRAPPED) && QT_CONFIG(temporaryfile)
+        if (ok) {
+            ok = sf.commit();
+        }
+#endif
+
+        if (ok) {
+            // If we have created the file, apply the file perms
+            if (createFile) {
+                QFile::Permissions perms = fileInfo.permissions() | QFile::ReadOwner | QFile::WriteOwner
+                                                                  | QFile::ReadGroup | QFile::ReadOther;
+                QFile(d->filePath).setPermissions(perms);
+            }
+            return true;
+        } else {
+            d->setStatus(QXdgDesktopEntry::AccessError);
+            return false;
+        }
+    }
+
+    return false;
 }
 
 QXdgDesktopEntry::Status QXdgDesktopEntry::status() const

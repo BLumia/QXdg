@@ -65,8 +65,9 @@ public:
     explicit QXdgDesktopEntry(QString filePath);
     ~QXdgDesktopEntry();
 
-    Status status() const;
+    bool save() const;
 
+    Status status() const;
     QStringList allGroups() const;
 
     bool contains(const QString& key, const QString &section = "Desktop Entry") const;

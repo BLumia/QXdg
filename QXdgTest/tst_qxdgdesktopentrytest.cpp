@@ -107,6 +107,10 @@ void QXdgDesktopEntryTest::testCase_ParseFile()
     QCOMPARE(desktopFile->contains("Semicolon"), true);
     QCOMPARE(desktopFile->removeEntry("Semicolon"), true);
     QCOMPARE(desktopFile->contains("Semicolon"), false);
+
+    qDebug() << desktopFile->save();
+//    file.open();
+//    qDebug() << file.readAll();
 }
 
 QTEST_APPLESS_MAIN(QXdgDesktopEntryTest)
