@@ -68,7 +68,7 @@ public:
     bool save() const;
 
     Status status() const;
-    QStringList allGroups() const;
+    QStringList allGroups(bool sorted = false) const;
 
     bool contains(const QString& key, const QString &section = "Desktop Entry") const;
 

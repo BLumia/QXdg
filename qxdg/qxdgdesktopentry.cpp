@@ -161,7 +161,7 @@ public:
     QString name;
     QMap<QString, QString> valuesMap;
     QByteArray unparsedDatas;
-    int sectionPos = -1;
+    int sectionPos = 99;
 
     inline operator QString() const {
         return QLatin1String("QXdgDesktopEntrySection(") + name + QLatin1String(")");
@@ -255,6 +255,7 @@ public:
     void setStatus(QXdgDesktopEntry::Status newStatus) const;
     bool write(QIODevice &device) const;
 
+    int sectionPos(const QString &sectionName) const;
     bool contains(const QString &sectionName, const QString &key) const;
     bool get(const QString &sectionName, const QString &key, QString *value);
     bool set(const QString &sectionName, const QString &key, const QString &value);
@@ -335,16 +336,18 @@ bool QXdgDesktopEntryPrivate::initSectionsFromData(const QByteArray &data)
     QString lastSectionName;
     int lastSectionStart = 0;
     bool formatOk = true;
+    int sectionIdx = 0;
     // for readLineFromFileData()
     int dataPos = 0;
     int lineStart;
     int lineLen;
     int equalsPos;
 
-    auto commitSection = [=](const QString &name, int sectionStartPos, int sectionLength) {
+    auto commitSection = [=](const QString &name, int sectionStartPos, int sectionLength, int sectionIndex) {
         QXdgDesktopEntrySection lastSection;
         lastSection.name = name;
         lastSection.unparsedDatas = data.mid(sectionStartPos, sectionLength);
+        lastSection.sectionPos = sectionIndex;
         sectionsMap[name] = lastSection;
     };
 
@@ -355,7 +358,8 @@ bool QXdgDesktopEntryPrivate::initSectionsFromData(const QByteArray &data)
         if (data.at(lineStart) == '[') {
             // commit the last section we've ever read before we read the new one.
             if (!lastSectionName.isEmpty()) {
-                commitSection(lastSectionName, lastSectionStart, lineStart - lastSectionStart);
+                commitSection(lastSectionName, lastSectionStart, lineStart - lastSectionStart, sectionIdx);
+                sectionIdx++;
             }
             // process section name line
             QByteArray sectionName;
@@ -374,7 +378,7 @@ bool QXdgDesktopEntryPrivate::initSectionsFromData(const QByteArray &data)
 
     Q_ASSERT(lineStart == data.length());
     if (!lastSectionName.isEmpty()) {
-        commitSection(lastSectionName, lastSectionStart, lineStart - lastSectionStart);
+        commitSection(lastSectionName, lastSectionStart, lineStart - lastSectionStart, sectionIdx);
     }
 
     return formatOk;
@@ -390,12 +394,25 @@ void QXdgDesktopEntryPrivate::setStatus(QXdgDesktopEntry::Status newStatus) cons
 
 bool QXdgDesktopEntryPrivate::write(QIODevice &device) const
 {
-    for (SectionMap::const_iterator i = sectionsMap.begin(); i != sectionsMap.end(); ++i) {
-        int ret = device.write(i->sectionData());
+    Q_Q(const QXdgDesktopEntry);
+
+    QStringList sortedKeys = q->allGroups(true);
+
+    for (const QString &key : sortedKeys) {
+        int ret = device.write(sectionsMap[key].sectionData());
         if (ret == -1) return false;
     }
 
     return true;
+}
+
+int QXdgDesktopEntryPrivate::sectionPos(const QString &sectionName) const
+{
+    if (sectionsMap.contains(sectionName)) {
+        return sectionsMap[sectionName].sectionPos;
+    }
+
+    return -1;
 }
 
 bool QXdgDesktopEntryPrivate::contains(const QString &sectionName, const QString &key) const
@@ -511,11 +528,34 @@ QXdgDesktopEntry::Status QXdgDesktopEntry::status() const
     return d->status;
 }
 
-QStringList QXdgDesktopEntry::allGroups() const
+QStringList QXdgDesktopEntry::allGroups(bool sorted) const
 {
     Q_D(const QXdgDesktopEntry);
 
-    return d->sectionsMap.keys();
+    if (!sorted) {
+        return d->sectionsMap.keys();
+    } else {
+        using StrIntPair = QPair<QString, int>;
+
+        QStringList keys = d->sectionsMap.keys();
+        QList<StrIntPair> result;
+
+        for (const QString & key : keys) {
+            result << StrIntPair(key, d->sectionPos(key));
+        }
+
+        std::sort(result.begin(), result.end(), [](const StrIntPair& a, const StrIntPair& b) -> bool {
+            return a.second < b.second;
+        });
+
+        keys.clear();
+
+        for (const StrIntPair& pair : result) {
+            keys << pair.first;
+        }
+
+        return keys;
+    }
 }
 
 bool QXdgDesktopEntry::contains(const QString &key, const QString &section) const

@@ -80,6 +80,7 @@ void QXdgDesktopEntryTest::testCase_ParseFile()
     QVERIFY(allGroups.contains("Desktop Entry") &&
             allGroups.contains("Desktop Action Gallery") &&
             allGroups.contains("Desktop Action Create"));
+    QCOMPARE(desktopFile->allGroups(true)[0], QStringLiteral("Desktop Entry"));
     QCOMPARE(desktopFile->localizedValue("Name", "zh_CN"), QStringLiteral("福查看器"));
     QCOMPARE(desktopFile->localizedValue("Name", "empty"), QStringLiteral("Foo Viewer"));
 
@@ -109,8 +110,7 @@ void QXdgDesktopEntryTest::testCase_ParseFile()
     QCOMPARE(desktopFile->contains("Semicolon"), false);
 
     qDebug() << desktopFile->save();
-//    file.open();
-//    qDebug() << file.readAll();
+    qDebug() << fileName;
 }
 
 QTEST_APPLESS_MAIN(QXdgDesktopEntryTest)
