@@ -104,6 +104,6 @@ void QXdgStandardPathTest::testCase_kf5config_path()
     QCOMPARE(results3.join(':'), expectedResults3);
 }
 
-//QTEST_APPLESS_MAIN(QXdgStandardPathTest)
+QTEST_APPLESS_MAIN(QXdgStandardPathTest)
 
 #include "tst_qxdgstandardpathtest.moc"

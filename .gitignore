@@ -1,5 +1,8 @@
 # project generated files
 *.user
 
+# build dir
+build*/
+
 # misc
 .directory

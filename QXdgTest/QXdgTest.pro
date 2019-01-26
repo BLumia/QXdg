@@ -29,7 +29,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 
 SOURCES += \
-    tst_qxdgstandardpathtest.cpp \
+#    tst_qxdgstandardpathtest.cpp \
     tst_qxdgdesktopentrytest.cpp
 
 # from QXdg
