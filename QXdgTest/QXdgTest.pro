@@ -34,13 +34,9 @@ SOURCES += \
 
 # from QXdg
 
-INCLUDEPATH += $$PWD/../qxdg
+INCLUDEPATH += $$PWD/..
 
 SOURCES += \
         $$PWD/../qxdg/qxdgstandardpath.cpp \
         $$PWD/../qxdg/qxdgdesktopentry.cpp
 
-HEADERS += \
-        $$PWD/../qxdg/qxdgstandardpath.h \
-        $$PWD/../qxdg/qxdgdesktopentry.h \
-        $$PWD/../qxdg/qxdg_global.h

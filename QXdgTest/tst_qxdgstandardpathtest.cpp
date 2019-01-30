@@ -23,7 +23,7 @@
 #include <QString>
 #include <QtTest>
 
-#include "qxdgstandardpath.h"
+#include "qxdg/qxdgstandardpath.h"
 
 class QXdgStandardPathTest : public QObject
 {

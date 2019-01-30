@@ -23,7 +23,7 @@
 #include <QString>
 #include <QtTest>
 
-#include "qxdgdesktopentry.h"
+#include "qxdg/qxdgdesktopentry.h"
 
 class QXdgDesktopEntryTest : public QObject
 {
