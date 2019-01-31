@@ -155,6 +155,7 @@ QString &doUnescape(QString& str, const QHash<QChar,QChar> &repl)
     return str;
 }
 
+/*! \internal */
 class QXdgDesktopEntrySection
 {
 public:
@@ -470,12 +471,27 @@ bool QXdgDesktopEntryPrivate::remove(const QString &sectionName, const QString &
     return false;
 }
 
+/*!
+ * \class QXdgDesktopEntry
+ * \brief Handling desktop entry files.
+ *
+ * QXdgDesktopEntry provide method for handling XDG desktop entry read and write. The interface
+ * of this class is similar to QSettings.
+ *
+ * For more details about the spec itself, please refer to:
+ * https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html
+ */
+
 QXdgDesktopEntry::QXdgDesktopEntry(QString filePath)
     : d_ptr(new QXdgDesktopEntryPrivate(filePath, this))
 {
 
 }
 
+/*!
+ * \brief Write back data to the desktop entry file.
+ * \return true if write success; otherwise returns false.
+ */
 bool QXdgDesktopEntry::save() const
 {
     Q_D(const QXdgDesktopEntry);
@@ -522,12 +538,26 @@ bool QXdgDesktopEntry::save() const
     return false;
 }
 
+/*!
+ * \brief Get data parse status
+ *
+ * Returns a status code indicating the first error that was met by QXdgDesktopEntry, or QSettings::NoError if no error occurred.
+ *
+ * Be aware that QXdgDesktopEntry delays performing some operations.
+ */
 QXdgDesktopEntry::Status QXdgDesktopEntry::status() const
 {
     Q_D(const QXdgDesktopEntry);
     return d->status;
 }
 
+/*!
+ * \brief Get a list of all section groups inside the desktop entry.
+ *
+ * If \a sorted is set to true, the returned result will keep the order as-is when reading the entry file.
+ *
+ * \return all available section groups.
+ */
 QStringList QXdgDesktopEntry::allGroups(bool sorted) const
 {
     Q_D(const QXdgDesktopEntry);
@@ -558,6 +588,11 @@ QStringList QXdgDesktopEntry::allGroups(bool sorted) const
     }
 }
 
+/*!
+ * \brief Check if the desktop entry file have the given \a section contains the given \a key
+ *
+ * \return true if the desktop entry contains the \a key in \a section; otherwise returns false.
+ */
 bool QXdgDesktopEntry::contains(const QString &key, const QString &section) const
 {
     Q_D(const QXdgDesktopEntry);
@@ -570,6 +605,13 @@ bool QXdgDesktopEntry::contains(const QString &key, const QString &section) cons
     return d->contains(section, key);
 }
 
+/*!
+ * \brief Returns the raw string value associated with the given \a key in \a section.
+ *
+ * If the entry contains no item with the key, the function returns a default-constructed value.
+ *
+ * \sa setRawValue(), stringValue(), localizedValue(), stringListValue()
+ */
 QString QXdgDesktopEntry::rawValue(const QString &key, const QString &section, const QString &defaultValue) const
 {
     Q_D(const QXdgDesktopEntry);
@@ -582,6 +624,13 @@ QString QXdgDesktopEntry::rawValue(const QString &key, const QString &section, c
     return result;
 }
 
+/*!
+ * \brief Returns the unescaped string value associated with the given \a key in \a section.
+ *
+ * If the entry contains no item with the key, the function returns a default-constructed value.
+ *
+ * \sa setStringValue(), rawValue(), localizedValue(), stringListValue()
+ */
 QString QXdgDesktopEntry::stringValue(const QString &key, const QString &section, const QString &defaultValue) const
 {
     QString rawResult = rawValue(key, section, defaultValue);
@@ -589,6 +638,16 @@ QString QXdgDesktopEntry::stringValue(const QString &key, const QString &section
     return rawResult;
 }
 
+/*!
+ * \brief Returns the localized string value associated with the given \a key and \localeKey in \a section.
+ *
+ * If the given \a localeKey can't be found, it will fallback to "C", if still cannot found, will fallback to the
+ * key without localeKey.
+ *
+ * If the entry contains no item with the key, the function returns a default-constructed value.
+ *
+ * \sa setLocalizedValue(), rawValue(), stringValue(), stringListValue()
+ */
 QString QXdgDesktopEntry::localizedValue(const QString &key, const QString &localeKey, const QString &section, const QString &defaultValue) const
 {
     Q_D(const QXdgDesktopEntry);
@@ -629,6 +688,13 @@ QString QXdgDesktopEntry::localizedValue(const QString &key, const QString &loca
     return result;
 }
 
+/*!
+ * \brief Returns a list of strings associated with the given \a key in the given \a section.
+ *
+ * If the entry contains no item with the key, the function returns a empty string list.
+ *
+ * \sa setRawValue(), rawValue(), stringValue(), localizedValue()
+ */
 QStringList QXdgDesktopEntry::stringListValue(const QString &key, const QString &section) const
 {
     Q_D(const QXdgDesktopEntry);

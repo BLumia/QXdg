@@ -35,18 +35,18 @@ class QXDGSHARED_EXPORT QXdgDesktopEntry
     Q_GADGET
 public:
     enum EntryType {
-        Unknown = 0, //! Unknown desktop file type. Maybe is invalid.
-        Application, //! The file describes application.
-        Link,        //! The file describes URL.
-        Directory,   //! The file describes directory settings.
-        ServiceType, //! KDE specific type. mentioned in the spec, so listed here too.
-        Service,     //! KDE specific type. mentioned in the spec, so listed here too.
-        FSDevice     //! KDE specific type. mentioned in the spec, so listed here too.
+        Unknown = 0, //!< Unknown desktop file type. Maybe is invalid.
+        Application, //!< The file describes application.
+        Link,        //!< The file describes URL.
+        Directory,   //!< The file describes directory settings.
+        ServiceType, //!< KDE specific type. mentioned in the spec, so listed here too.
+        Service,     //!< KDE specific type. mentioned in the spec, so listed here too.
+        FSDevice     //!< KDE specific type. mentioned in the spec, so listed here too.
     };
     Q_ENUM(EntryType)
 
     enum ValueType {
-        Unparsed = 0,
+        Unparsed = 0, // Maybe useless, consider remove it?
         String,
         Strings,
         Boolean,
@@ -56,9 +56,9 @@ public:
     Q_ENUM(ValueType)
 
     enum Status {
-        NoError = 0,
-        AccessError,
-        FormatError
+        NoError = 0, //!< No error occurred.
+        AccessError, //!< An access error occurred (e.g. trying to write to a read-only file).
+        FormatError  //!< A format error occurred (e.g. loading a malformed desktop entry file).
     };
     Q_ENUM(Status)
 

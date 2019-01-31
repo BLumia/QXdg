@@ -110,8 +110,8 @@ QStringList kf5ResourceDirs(QString type) {
     if (type.isEmpty()) return {};
 
     // KDE did this, I don't think this is good. Maybe there are something wrong in KDE's implemetion.
-    // Reason is: you'll get a "/home/wzc/.local/share/flatpak/exports/share" if you use flatpak which
-    //            is also a dir inside "~/.local/", or the local variable doesn't means like that?
+    // Reason is: you'll get a "~/.local/share/flatpak/exports/share" if you use flatpak which is
+    //            also a dir inside "~/.local/", or the local variable doesn't means like that?
     bool local = true;
 
     for (const QString & singleDir : dirs) {
@@ -126,6 +126,22 @@ QStringList kf5ResourceDirs(QString type) {
     return result;
 }
 
+/*!
+ * \brief Get the xdg-user-dirs defined user directory path by the given \a type.
+ *
+ * Please notice that accroding to xdg-user-dirs spec, an user directory can be disabled by set the path to user's
+ * home directory.
+ *
+ * This function can also return an empty string if the given \a type is not a xdg-user-dirs type (i.e. only accept
+ * type from QXdgStandardPath::DesktopLocation to QXdgStandardPath::VideosLocation). For other type, use
+ * standardLocations() instead.
+ *
+ * All results are without the trailling slash.
+ *
+ * \return The defined user-dirs type, or an empty string if cannot found.
+ *
+ * \sa standardLocations()
+ */
 QString QXdgStandardPath::userDirLocation(QXdgStandardPath::StandardLocation type)
 {
     // http://www.freedesktop.org/wiki/Software/xdg-user-dirs
@@ -230,8 +246,23 @@ QString QXdgStandardPath::userDirLocation(QXdgStandardPath::StandardLocation typ
     return fallbackPath;
 }
 
-/*
+/*!
+ * \class QXdgStandardPath
+ *
+ * \brief The QXdgStandardPath class provides methods for accessing common used paths.
+ */
+
+/*!
+ * \brief Get the common used directory path by the given \a type.
+ *
  * All results are without the trailling slash.
+ *
+ * Notice that KDE specific types can not promise to get a 100% matched result than kf5-config.
+ *
+ * Returns a list of strings, if you only need a path about a xdg-user-dirs type directory, use
+ * userDirLocation() instead.
+ *
+ * \sa userDirLocation()
 */
 QStringList QXdgStandardPath::standardLocations(QXdgStandardPath::StandardLocation type)
 {
