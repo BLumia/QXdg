@@ -253,7 +253,7 @@ public:
     bool isWritable() const;
     bool fuzzyLoad();
     bool initSectionsFromData(const QByteArray &data);
-    void setStatus(QXdgDesktopEntry::Status newStatus) const;
+    void setStatus(const QXdgDesktopEntry::Status &newStatus) const;
     bool write(QIODevice &device) const;
 
     int sectionPos(const QString &sectionName) const;
@@ -386,7 +386,7 @@ bool QXdgDesktopEntryPrivate::initSectionsFromData(const QByteArray &data)
 }
 
 // Always keep the first meet error status. and allowed clear the status.
-void QXdgDesktopEntryPrivate::setStatus(QXdgDesktopEntry::Status newStatus) const
+void QXdgDesktopEntryPrivate::setStatus(const QXdgDesktopEntry::Status &newStatus) const
 {
     if (newStatus == QXdgDesktopEntry::NoError || this->status == QXdgDesktopEntry::NoError) {
         this->status = newStatus;
@@ -436,7 +436,6 @@ bool QXdgDesktopEntryPrivate::get(const QString &sectionName, const QString &key
         return false;
     }
 
-    // TODO: keep group order
     if (sectionsMap.contains(sectionName)) {
         QString &&result = sectionsMap[sectionName].get(key, *value);
         *value = result;
@@ -913,4 +912,12 @@ QString &QXdgDesktopEntry::unescapeExec(QString &str)
     repl.insert(QLatin1Char('`'), QLatin1Char('`'));    // backtick character ("`").
 
     return doUnescape(str, repl);
+}
+
+bool QXdgDesktopEntry::setStatus(const QXdgDesktopEntry::Status &status)
+{
+    Q_D(QXdgDesktopEntry);
+    d->setStatus(status);
+
+    return true;
 }

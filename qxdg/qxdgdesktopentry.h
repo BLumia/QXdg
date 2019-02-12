@@ -92,6 +92,9 @@ public:
     static QString &unescape(QString& str, bool unescapeSemicolons = false);
     static QString &unescapeExec(QString& str);
 
+protected:
+    bool setStatus(const Status& status);
+
 private:
     QScopedPointer<QXdgDesktopEntryPrivate> d_ptr;
 
