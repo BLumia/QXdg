@@ -3,6 +3,7 @@ project(QXdg)
 cmake_minimum_required(VERSION 3.11)
 
 option(BUILD_TESTS "Build tests" ON)
+option(BUILD_UTILS "Build utilities" ON)
 option(BUILD_DOCS "Build documentation" ON)
 
 # Find includes in corresponding build directories
@@ -29,6 +30,10 @@ else ()
     message(STATUS "To build tests, please use -DBUILD_TESTS=Yes")
     message(STATUS "")
 endif ()
+
+if (BUILD_UTILS)
+    add_subdirectory(utils)
+endif()
 
 if (BUILD_DOCS)
     if (NOT DOXYGEN_FOUND)
