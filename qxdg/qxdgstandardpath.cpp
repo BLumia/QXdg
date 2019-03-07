@@ -30,11 +30,23 @@
 static QString xdgConfigHomeDir()
 {
     QString xdgConfigHome = QFile::decodeName(qgetenv("XDG_CONFIG_HOME"));
+    // https://specifications.freedesktop.org/basedir-spec/basedir-spec-0.8.html
     if (xdgConfigHome.isEmpty()) {
         xdgConfigHome = QDir::homePath() + QLatin1String("/.config");
     }
 
     return xdgConfigHome;
+}
+
+static QString xdgCacheHomeDir()
+{
+    QString xdgCacheHome = QFile::decodeName(qgetenv("XDG_CACHE_HOME"));
+    // https://specifications.freedesktop.org/basedir-spec/basedir-spec-0.8.html
+    if (xdgCacheHome.isEmpty()) {
+        xdgCacheHome = QDir::homePath() + QLatin1String("/.cache");
+    }
+
+    return xdgCacheHome;
 }
 
 static QStringList xdgConfigDirs()
@@ -276,6 +288,8 @@ QStringList QXdgStandardPath::standardLocations(QXdgStandardPath::StandardLocati
         return xdgDataDirs();
     case XdgDataHomeLocation:
         return {xdgDataHomeDir()};
+    case XdgCacheHomeLocation:
+        return {xdgCacheHomeDir()};
     // xdg-user-dirs:
     case DesktopLocation:
     case DownloadLocation:

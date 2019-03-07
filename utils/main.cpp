@@ -18,7 +18,8 @@ const QMap<QString, QPair<QXdgStandardPath::StandardLocation, QString>> pathType
     {"XDG_CONFIG_HOME", {QXdgStandardPath::XdgConfigHomeLocation, "Single base directory relative to which user-specific configuration files should be written, defined by basedir-spec."}},
     {"XDG_CONFIG_DIRS", {QXdgStandardPath::XdgConfigDirsLocation, "Set of preference ordered base directories relative to which configuration files should be searched, defined by basedir-spec."}},
     {"XDG_DATA_DIRS", {QXdgStandardPath::XdgDataDirsLocation, "set of preference ordered base directories relative to which data files should be searched, defined by basedir-spec."}},
-    {"XDG_DATA_HOME", {QXdgStandardPath::XdgDataHomeLocation, "Single base directory relative to which user-specific data files should be written., defined by basedir-spec."}},
+    {"XDG_DATA_HOME", {QXdgStandardPath::XdgDataHomeLocation, "Single base directory relative to which user-specific data files should be written, defined by basedir-spec."}},
+    {"XDG_CACHE_HOME", {QXdgStandardPath::XdgCacheHomeLocation, "Defines the base directory relative to which user specific non-essential data files should be stored, defined by basedir-spec."}},
     {"KF5_SERVICES", {QXdgStandardPath::Kf5ServicesLocation, "(*) KDE Framework 5 services. (kf5-config --path services)"}}, // not part of XDG or FreeDesktop standard
     {"KF5_SOUND", {QXdgStandardPath::Kf5SoundLocation, "(*) KDE Framework 5 application sounds. (kf5-config --path sound)"}},
     {"KF5_TEMPLATES", {QXdgStandardPath::Kf5TemplatesLocation, "(*) KDE Framework 5 templates. (kf5-config --path templates)"}}
@@ -26,7 +27,7 @@ const QMap<QString, QPair<QXdgStandardPath::StandardLocation, QString>> pathType
 
 const QStringList typesList = {
     "DESKTOP", "DOWNLOAD", "TEMPLATES", "PUBLICSHARE", "DOCUMENTS", "MUSIC", "PICTURES", "VIDEOS",
-    "XDG_CONFIG_HOME", "XDG_CONFIG_DIRS", "XDG_DATA_DIRS", "XDG_DATA_HOME",
+    "XDG_CONFIG_HOME", "XDG_CONFIG_DIRS", "XDG_DATA_DIRS", "XDG_DATA_HOME", "XDG_CACHE_HOME",
     "KF5_SERVICES", "KF5_SOUND", "KF5_TEMPLATES"
 };
 

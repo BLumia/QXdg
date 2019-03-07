@@ -48,6 +48,7 @@ public:
         XdgConfigDirsLocation,
         XdgDataDirsLocation,
         XdgDataHomeLocation,
+        XdgCacheHomeLocation,
         // KDE Framework paths
         Kf5ServicesLocation,
         Kf5SoundLocation,
