@@ -83,6 +83,8 @@ void QXdgDesktopEntryTest::testCase_ParseFile()
     QCOMPARE(desktopFile->allGroups(true)[0], QStringLiteral("Desktop Entry"));
     QCOMPARE(desktopFile->localizedValue("Name", "zh_CN"), QStringLiteral("福查看器"));
     QCOMPARE(desktopFile->localizedValue("Name", "empty"), QStringLiteral("Foo Viewer"));
+    QCOMPARE(desktopFile->keys(QStringLiteral("Desktop Entry")),
+             QStringList({"Actions", "Comment", "Exec", "Icon", "MimeType", "Name", "Name[zh_CN]", "TryExec", "Type", "Version"}));
 
     {
         struct RestoreLocale {

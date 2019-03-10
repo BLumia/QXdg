@@ -218,6 +218,11 @@ public:
         return valuesMap.contains(key);
     }
 
+    QStringList allKeys() const {
+        const_cast<QXdgDesktopEntrySection*>(this)->ensureSectionDataParsed();
+        return valuesMap.keys();
+    }
+
     QString get(const QString &key, QString &defaultValue) {
         if (this->contains(key)) {
             return valuesMap[key];
@@ -258,6 +263,7 @@ public:
 
     int sectionPos(const QString &sectionName) const;
     bool contains(const QString &sectionName, const QString &key) const;
+    QStringList keys(const QString &sectionName) const;
     bool get(const QString &sectionName, const QString &key, QString *value);
     bool set(const QString &sectionName, const QString &key, const QString &value);
     bool remove(const QString &sectionName, const QString &key);
@@ -265,8 +271,8 @@ public:
 protected:
     QString filePath;
     QMutex fileMutex;
-    mutable QXdgDesktopEntry::Status status;
     SectionMap sectionsMap;
+    mutable QXdgDesktopEntry::Status status;
 
 private:
     QXdgDesktopEntry *q_ptr = nullptr;
@@ -400,7 +406,7 @@ bool QXdgDesktopEntryPrivate::write(QIODevice &device) const
     QStringList sortedKeys = q->allGroups(true);
 
     for (const QString &key : sortedKeys) {
-        int ret = device.write(sectionsMap[key].sectionData());
+        qint64 ret = device.write(sectionsMap[key].sectionData());
         if (ret == -1) return false;
     }
 
@@ -427,6 +433,19 @@ bool QXdgDesktopEntryPrivate::contains(const QString &sectionName, const QString
     }
 
     return false;
+}
+
+QStringList QXdgDesktopEntryPrivate::keys(const QString &sectionName) const
+{
+    if (sectionName.isNull()) {
+        return {};
+    }
+
+    if (sectionsMap.contains(sectionName)) {
+        return sectionsMap[sectionName].allKeys();
+    }
+
+    return {};
 }
 
 // return true if we found the value, and set the value to *value
@@ -551,6 +570,23 @@ QXdgDesktopEntry::Status QXdgDesktopEntry::status() const
 }
 
 /*!
+ * \brief Get a list of all section keys inside the given \a section.
+ *
+ * \return all available section keys.
+ */
+QStringList QXdgDesktopEntry::keys(const QString &section) const
+{
+    Q_D(const QXdgDesktopEntry);
+
+    if (section.isEmpty()) {
+        qWarning("QXdgDesktopEntry::keys: Empty section name passed");
+        return {};
+    }
+
+    return d->keys(section);
+}
+
+/*!
  * \brief Get a list of all section groups inside the desktop entry.
  *
  * If \a sorted is set to true, the returned result will keep the order as-is when reading the entry file.
@@ -638,7 +674,7 @@ QString QXdgDesktopEntry::stringValue(const QString &key, const QString &section
 }
 
 /*!
- * \brief Returns the localized string value associated with the given \a key and \localeKey in \a section.
+ * \brief Returns the localized string value associated with the given \a key and \a localeKey in \a section.
  *
  * If the given \a localeKey can't be found, it will fallback to "C", if still cannot found, will fallback to the
  * key without localeKey.
@@ -679,7 +715,7 @@ QString QXdgDesktopEntry::localizedValue(const QString &key, const QString &loca
 
     for (const QString &oneKey : possibleKeys) {
         if (d->contains(section, oneKey)) {
-            const_cast<QXdgDesktopEntryPrivate *>(d)->get(section, oneKey, &result); // FIXME: better way than const_cast?
+            const_cast<QXdgDesktopEntryPrivate *>(d)->get(section, oneKey, &result);
             break;
         }
     }
@@ -700,7 +736,7 @@ QStringList QXdgDesktopEntry::stringListValue(const QString &key, const QString 
 
     QString value;
 
-    const_cast<QXdgDesktopEntryPrivate *>(d)->get(section, key, &value); // FIXME: better way than const_cast?
+    const_cast<QXdgDesktopEntryPrivate *>(d)->get(section, key, &value);
 
     if (value.endsWith(';')) {
         value = value.left(value.length() - 1);
