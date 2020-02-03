@@ -33,11 +33,12 @@ enum { Space = 0x1, Special = 0x2 };
 
 static const char charTraits[256] = {
     // Space: '\t', '\n', '\r', ' '
-    // Special: '\n', '\r', '"', ';', '=', '\\', '#'
+    // Special: '\n', '\r', ';', '=', '\\', '#'
+    // Please note that '"' is NOT a special character
 
     0, 0, 0, 0, 0, 0, 0, 0, 0, Space, Space | Special, 0, 0, Space | Special, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    Space, 0, Special, Special, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    Space, 0, 0, Special, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, Special, 0, Special, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, Special, 0, 0, 0,
@@ -57,7 +58,6 @@ static const char charTraits[256] = {
 bool readLineFromData(const QByteArray &data, int &dataPos, int &lineStart, int &lineLen, int &equalsPos)
 {
     int dataLen = data.length();
-    bool inQuotes = false;
 
     equalsPos = -1;
 
@@ -74,12 +74,12 @@ bool readLineFromData(const QByteArray &data, int &dataPos, int &lineStart, int 
 
         char ch = data.at(i++);
         if (ch == '=') {
-            if (!inQuotes && equalsPos == -1)
+            if (equalsPos == -1)
                 equalsPos = i - 1;
         } else if (ch == '\n' || ch == '\r') {
             if (i == lineStart + 1) {
                 ++lineStart;
-            } else if (!inQuotes) {
+            } else {
                 --i;
                 goto break_out_of_outer_loop;
             }
@@ -93,8 +93,6 @@ bool readLineFromData(const QByteArray &data, int &dataPos, int &lineStart, int 
                         ++i;
                 }
             }
-        } else if (ch == '"') {
-            inQuotes = !inQuotes;
         } else if (ch == ';') {
             // The multiple values should be separated by a semicolon and the value of the key
             // may be optionally terminated by a semicolon. Trailing empty strings must always
@@ -109,9 +107,6 @@ bool readLineFromData(const QByteArray &data, int &dataPos, int &lineStart, int 
                 while (i < dataLen && (((ch = data.at(i)) != '\n') && ch != '\r'))
                     ++i;
                 lineStart = i;
-            } else if (!inQuotes) {
-                --i;
-                goto break_out_of_outer_loop;
             }
         }
     }
@@ -502,6 +497,11 @@ bool QXdgDesktopEntryPrivate::remove(const QString &sectionName, const QString &
 
 QXdgDesktopEntry::QXdgDesktopEntry(QString filePath)
     : d_ptr(new QXdgDesktopEntryPrivate(filePath, this))
+{
+
+}
+
+QXdgDesktopEntry::~QXdgDesktopEntry()
 {
 
 }

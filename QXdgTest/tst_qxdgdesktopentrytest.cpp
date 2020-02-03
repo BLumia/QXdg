@@ -48,6 +48,7 @@ Type=Application
 Name=Foo Viewer
 Name[zh_CN]=福查看器
 Comment=The best viewer for Foo objects available!
+Comment[zh_CN]=最棒的 "福 查看器！
 TryExec=fooview
 Exec=fooview %F
 Icon=fooview
@@ -84,7 +85,7 @@ void QXdgDesktopEntryTest::testCase_ParseFile()
     QCOMPARE(desktopFile->localizedValue("Name", "zh_CN"), QStringLiteral("福查看器"));
     QCOMPARE(desktopFile->localizedValue("Name", "empty"), QStringLiteral("Foo Viewer"));
     QCOMPARE(desktopFile->keys(QStringLiteral("Desktop Entry")),
-             QStringList({"Actions", "Comment", "Exec", "Icon", "MimeType", "Name", "Name[zh_CN]", "TryExec", "Type", "Version"}));
+             QStringList({"Actions", "Comment", "Comment[zh_CN]", "Exec", "Icon", "MimeType", "Name", "Name[zh_CN]", "TryExec", "Type", "Version"}));
 
     {
         struct RestoreLocale {
