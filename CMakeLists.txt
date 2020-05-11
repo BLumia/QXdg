@@ -40,25 +40,24 @@ if (BUILD_DOCS)
         message(FATAL_ERROR "Doxygen is required to build the documentation.")
     endif ()
 
-    find_program(QHP_FOUND NAMES qhelpgenerator)
-    if (NOT QHP_FOUND)
-        message(FATAL_ERROR "qhelpgenerator is required to build qch documentation.")
-    endif ()
+    set (DOXYGEN_GENERATE_HTML YES)
+    set (DOXYGEN_GENERATE_QHP YES)
+    set (DOXYGEN_EXTRACT_STATIC YES)
+    set (DOXYGEN_OUTPUT_DIRECTORY "./docs/")
+    set (DOXYGEN_EXCLUDE_SYMBOLS "*Private;*Test")
+    set (DOXYGEN_QHG_LOCATION "qhelpgenerator")
+    set (DOXYGEN_QHP_NAMESPACE "net.blumia.qxdg")
+    set (DOXYGEN_QCH_FILE "../qxdg.qch")
+    set (DOXYGEN_QHP_VIRTUAL_FOLDER "qxdg")
 
-    set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in)
-    set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
+    doxygen_add_docs(doxygen
+        ${CMAKE_CURRENT_SOURCE_DIR}/qxdg
+        ALL
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/qxdg
+        COMMENT "Generate documentation via Doxygen"
+    )
 
-    # request to configure the file
-    configure_file (${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
-
-    add_custom_target (doc
-        COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-        COMMENT "Generating API documentation with Doxygen"
-        VERBATIM)
-
-    install (DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/html DESTINATION share/doc)
-
+    install (FILES ${CMAKE_CURRENT_BINARY_DIR}/docs/qxdg.qch DESTINATION share/qt5/doc)
 else ()
     message(STATUS "")
     message(STATUS "To build docs, please use -DBUILD_DOCS=Yes")
